@@ -39,7 +39,6 @@ export default function Header() {
           />
 
           <input
-            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search images, ideas..."
