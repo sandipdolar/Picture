@@ -112,7 +112,7 @@ function App() {
             All
           </h2>
 
-          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5">
+          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 mb-20 sm:mb-5 lg:mb-4  xl:mb-2">
             {pins.map((pin) => (
               <article
                 key={pin.id}
@@ -132,7 +132,7 @@ function App() {
                     className="pin-skeleton absolute inset-0 z-0 animate-pulse bg-neutral-200"
                   />
 
-                  <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100">
                     <button
                       type="button"
                       aria-label={`Copy ${pin.title}`}
