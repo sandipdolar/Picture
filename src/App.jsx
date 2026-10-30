@@ -1,180 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
 
-import Header from "./Component/HeaderComponent/Header";
-import Sidebar from "./Component/SidebarComponent/Sidebar";
-import imagePaths from "./images.json";
-import observeImages from "../Observer";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-import { Download } from "lucide-react";
+import Gallery from "./pages/Gallery";
+import AdminLogin from "./pages/Admin/AdminLogin";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import ProtectedRoute from "./pages/Admin/ProtectedRoute";
 
 function App() {
-  
-  const [notification, setNotification] = useState("");
-
-  useEffect(() => {
-    if (!notification) return;
-
-    const timer = setTimeout(() => {
-      setNotification("");
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [notification]);
-
-
-  
-  const pins = useMemo(() => {
-    return imagePaths
-      .filter((image) => image !== "/logo.png")
-      .sort(() => Math.random() - 0.5)
-      .map((image, index) => ({
-        id: index + 1,
-        image,
-        title: image.split("/").pop(),
-      }));
-  }, []);
-
-  useEffect(() => {
-    return observeImages();
-  }, [pins]);
-    
-  const handleSave = async (pin) => {
-    try {
-      if (!navigator.clipboard || !window.ClipboardItem) {
-        throw new Error("Image clipboard is not supported by this browser.");
-      }
-
-      const response = await fetch(pin.image);
-
-      if (!response.ok) {
-        throw new Error("Failed to load image.");
-      }
-
-      const blob = await response.blob();
-
-      let pngBlob = blob;
-
-      if (blob.type !== "image/png") {
-        const bitmap = await createImageBitmap(blob);
-        const canvas = document.createElement("canvas");
-
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-
-        canvas.getContext("2d").drawImage(bitmap, 0, 0);
-        bitmap.close();
-
-        pngBlob = await new Promise((resolve, reject) => {
-          canvas.toBlob((result) => {
-            if (result) {
-              resolve(result);
-            } else {
-              reject(new Error("Image conversion failed."));
-            }
-          }, "image/png");
-        });
-      }
-
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": pngBlob }),
-      ]);
-
-      setNotification("Image copied successfully!");
-    } catch (error) {
-      console.error("Could not copy image:", error);
-      setNotification("Could not copy image. Check browser permissions.");
-    }
-  };
-
-  const handleDownload = (pin) => {
-    const link = document.createElement("a");
-
-    link.href = pin.image;
-    link.download = pin.title;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    setNotification(`Image download started: ${pin.title}`);
-  };
-
-
   return (
-    <div className="min-h-screen bg-white">
-      <Sidebar />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Gallery />} />
 
-      <div className="ml-0 min-h-screen md:ml-[84px]">
-        <Header />
+        <Route path="/admin/login" element={<AdminLogin />} />
 
-        <main className="px-4 sm:px-6">
-          <h2 className="mb-7 mt-6 w-fit border-b-2 border-black pb-2 font-medium meet">
-            All
-          </h2>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
 
-          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 mb-20 sm:mb-5 lg:mb-4  xl:mb-2">
-            {pins.map((pin) => (
-              <article
-                key={pin.id}
-                className="mb-5 break-inside-avoid"
-              >
-                
-                <div className="group relative  overflow-hidden rounded-2xl bg-neutral-100">
-                  <img
-                    src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                    data-src={pin.image}
-                    alt={pin.title}
-                    className="pin-image relative z-10 block h-auto w-full opacity-0 transition-opacity duration-300"
-                  />
-
-                  <div
-                    aria-hidden="true"
-                    className="pin-skeleton absolute inset-0 z-0 animate-pulse bg-neutral-200"
-                  />
-
-                  <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100">
-                    <button
-                      type="button"
-                      aria-label={`Copy ${pin.title}`}
-                      title="Copy image"
-                      onClick={() => handleSave(pin)}
-                      className="flex h-8 items-center justify-center rounded-full bg-red-600 px-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
-                    >
-                      Save
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label={`Download ${pin.title}`}
-                      title="Download image"
-                      onClick={() => handleDownload(pin)}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm hover:bg-gray-100"
-                    >
-                      <Download className="text-black" size={17} />
-                    </button>
-                  </div>
-                </div>
-
-              </article>
-            ))}
-          </div>
-        </main>
-      </div>      
-      {notification && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-white shadow-xl"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-            ✓
-          </span>
-
-          <span>{notification}</span>
-        </div>
-      )}
-
-    </div>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
