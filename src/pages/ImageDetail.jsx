@@ -40,6 +40,7 @@ function ImageDetail() {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isLiked, setIsLiked] = useState(false);
 
