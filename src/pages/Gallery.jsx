@@ -33,6 +33,7 @@ function Gallery() {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!notification.message) return;
@@ -76,10 +77,22 @@ function Gallery() {
     }));
   }, [images]);
 
+  const filteredPins = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return pins;
+    }
+
+    return pins.filter((pin) =>
+      pin.title.toLowerCase().includes(query)
+    );
+  }, [pins, searchQuery]);
+
   // Preserve the existing lazy-loading observer
   useEffect(() => {
     return observeImages();
-  }, [pins]);
+  }, [filteredPins]);
 
   const handleSave = async (pin) => {
     try {
@@ -140,7 +153,7 @@ function Gallery() {
       <Sidebar />
 
       <div className="ml-0 min-h-screen md:ml-[84px]">
-        <Header />
+        <Header onSearch={setSearchQuery} />
 
         <main className="px-4 sm:px-6">
           <h2 className="mb-7 mt-6 w-fit border-b-2 border-black pb-2 font-medium meet">
@@ -149,7 +162,9 @@ function Gallery() {
 
           {isLoading ? (
             <p className="py-8 text-center text-neutral-500">
-              Loading images...
+              {searchQuery.trim()
+                ? `No images found for "${searchQuery}".`
+                : "No images found. Upload your first image to get started."}
             </p>
           ) : error ? (
             <div className="py-8 text-center">
@@ -163,13 +178,13 @@ function Gallery() {
                 Try Again
               </button>
             </div>
-          ) : pins.length === 0 ? (
+          ) : filteredPins.length === 0 ? (
             <p className="py-8 text-center text-neutral-500">
               No images found. Upload your first image to get started.
             </p>
           ) : (
             <div className="mb-20 columns-2 gap-4 sm:mb-5 sm:columns-3 lg:mb-4 lg:columns-4 xl:mb-2 xl:columns-5">
-              {pins.map((pin) => (
+              {filteredPins.map((pin) => (
                 <article
                   key={pin.id}
                   className="mb-5 break-inside-avoid"

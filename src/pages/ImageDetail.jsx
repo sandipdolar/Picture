@@ -276,7 +276,7 @@ function ImageDetail() {
         <Sidebar />
 
         <div className="ml-0 min-h-screen md:ml-[84px]">
-          <Header />
+          <Header onSearch={setSearchQuery} />
 
           <div className="flex min-h-[70vh] items-center justify-center gap-3">
             <LoaderCircle className="animate-spin" size={25} />
@@ -297,7 +297,7 @@ function ImageDetail() {
         <Sidebar />
 
         <div className="ml-0 min-h-screen md:ml-[84px]">
-          <Header />
+          <Header onSearch={setSearchQuery} />
 
           <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3 px-4">
             <ImageOff size={45} className="text-neutral-400" />
@@ -324,7 +324,7 @@ function ImageDetail() {
       <Sidebar />
 
       <div className="ml-0 min-h-screen md:ml-[84px]">
-        <Header />
+        <Header onSearch={setSearchQuery} />
 
         <main className="px-4 pb-20 pt-5 sm:px-6 lg:px-8">
           <button

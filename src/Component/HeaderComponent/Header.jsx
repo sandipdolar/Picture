@@ -8,16 +8,13 @@ import {
   X,
 } from "lucide-react";
 
-export default function Header() {
+export default function Header({ onSearch }) {
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
-
-    if (search.trim()) {
-      console.log("Search:", search.trim());
-    }
+    onSearch?.(search.trim());
   };
 
   const closeProfile = () => {
@@ -40,7 +37,11 @@ export default function Header() {
 
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearch(value);
+              onSearch?.(value);
+            }}
             placeholder="Search images, ideas..."
             aria-label="Search images and ideas"
             className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-500 sm:px-3 sm:text-base"
