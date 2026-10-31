@@ -180,7 +180,7 @@ function Gallery() {
             </div>
           ) : filteredPins.length === 0 ? (
             <p className="py-8 text-center text-neutral-500">
-              No images found. Upload your first image to get started.
+              No images were found.
             </p>
           ) : (
             <div className="mb-20 columns-2 gap-4 sm:mb-5 sm:columns-3 lg:mb-4 lg:columns-4 xl:mb-2 xl:columns-5">
