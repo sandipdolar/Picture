@@ -164,7 +164,7 @@ function Gallery() {
             <p className="py-8 text-center text-neutral-500">
               {searchQuery.trim()
                 ? `No images found for "${searchQuery}".`
-                : "No images found. Upload your first image to get started."}
+                : "No images were found."}
             </p>
           ) : error ? (
             <div className="py-8 text-center">
