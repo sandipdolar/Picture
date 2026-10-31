@@ -1,4 +1,4 @@
-const API_URL = `${import.meta.env.VITE_API_URL}/api/images`;
+const API_URL = `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/images`;
 
 // Fetch all public gallery images
 export const getImages = async () => {
