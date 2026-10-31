@@ -1,12 +1,13 @@
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Header from "../Component/HeaderComponent/Header";
 import Sidebar from "../Component/SidebarComponent/Sidebar";
 import observeImages from "../../Observer";
 import { getImages } from "../api/imageApi";
 
-import { Download } from "lucide-react";
+import { Download, X } from "lucide-react";
 
 // Return a shuffled copy without changing the original array
 function shuffleImages(images) {
@@ -22,20 +23,29 @@ function shuffleImages(images) {
 }
 
 function Gallery() {
-  const [notification, setNotification] = useState("");
+
+  const navigate = useNavigate();
+
+  const [notification, setNotification] = useState({
+    message: "",
+    type: "success",
+  });
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!notification) return;
+    if (!notification.message) return;
 
     const timer = setTimeout(() => {
-      setNotification("");
-    }, 2500);
+      setNotification({
+        message: "",
+        type: "success",
+      });
+    }, 3000);
 
     return () => clearTimeout(timer);
-  }, [notification]);
+  }, [notification.message, notification.type]);
 
   // Fetch images from the backend API
   useEffect(() => {
@@ -112,24 +122,17 @@ function Gallery() {
         new ClipboardItem({ "image/png": pngBlob }),
       ]);
 
-      setNotification("Image copied successfully!");
+      setNotification({
+        message: "Image copied successfully!",
+        type: "success",
+      });
     } catch (error) {
       console.error("Could not copy image:", error);
-      setNotification("Could not copy image. Check browser permissions.");
+      setNotification({
+        message: "Could not copy image. Check browser permissions.",
+        type: "error",
+      });
     }
-  };
-
-  const handleDownload = (pin) => {
-    const link = document.createElement("a");
-
-    link.href = pin.image;
-    link.download = pin.title;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    setNotification(`Image download started: ${pin.title}`);
   };
 
   return (
@@ -171,19 +174,34 @@ function Gallery() {
                   key={pin.id}
                   className="mb-5 break-inside-avoid"
                 >
-                  <div className="group relative overflow-hidden rounded-2xl bg-neutral-100">
+                  <div
+                    className="group relative overflow-hidden rounded-2xl bg-neutral-100"
+                    onContextMenu={(event) => event.preventDefault()}
+                    onDragStart={(event) => event.preventDefault()}
+                  >
                     <img
                       src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                       data-src={pin.image}
                       alt={pin.title}
                       loading="lazy"
-                      className="pin-image relative z-10 block h-auto w-full opacity-0 transition-opacity duration-300"
+                      draggable={false}
+                      onContextMenu={(event) => event.preventDefault()}
+                      onDragStart={(event) => event.preventDefault()}
+                      onClick={() => navigate(`/image/${pin.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          navigate(`/image/${pin.id}`);
+                        }
+                      }}
+                      className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-0 transition-opacity duration-300"
                       onLoad={(event) => {
                         event.currentTarget.classList.remove("opacity-0");
+
                         const skeleton =
-                          event.currentTarget.parentElement.querySelector(
-                            ".pin-skeleton"
-                          );
+                          event.currentTarget.parentElement.querySelector(".pin-skeleton");
 
                         skeleton?.classList.add("hidden");
                       }}
@@ -191,9 +209,7 @@ function Gallery() {
                         event.currentTarget.classList.remove("opacity-0");
 
                         const skeleton =
-                          event.currentTarget.parentElement.querySelector(
-                            ".pin-skeleton"
-                          );
+                          event.currentTarget.parentElement.querySelector(".pin-skeleton");
 
                         skeleton?.classList.add("hidden");
                       }}
@@ -204,25 +220,18 @@ function Gallery() {
                       className="pin-skeleton absolute inset-0 z-0 animate-pulse bg-neutral-200"
                     />
 
-                    <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" >
                       <button
                         type="button"
                         aria-label={`Copy ${pin.title}`}
                         title="Copy image"
-                        onClick={() => handleSave(pin)}
+                        onClick={(event) => {
+                          event.currentTarget.blur();
+                          handleSave(pin);
+                        }}
                         className="flex h-8 items-center justify-center rounded-full bg-red-600 px-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
                       >
                         Save
-                      </button>
-
-                      <button
-                        type="button"
-                        aria-label={`Download ${pin.title}`}
-                        title="Download image"
-                        onClick={() => handleDownload(pin)}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm hover:bg-gray-100"
-                      >
-                        <Download className="text-black" size={17} />
                       </button>
                     </div>
                   </div>
@@ -233,19 +242,84 @@ function Gallery() {
         </main>
       </div>
 
-      {notification && (
+      
+      {notification.message && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-white shadow-xl"
+          className="fixed bottom-4 left-1/2 z-[100] w-[calc(100%-32px)] max-w-[420px] -translate-x-1/2 sm:bottom-6"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-            ✓
-          </span>
+          <div
+            className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:px-5 ${
+              notification.type === "success"
+                ? "border-green-100"
+                : "border-red-100"
+            }`}
+          >
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                notification.type === "success"
+                  ? "bg-green-50 text-green-600"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
+              {notification.type === "success" ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m5 12 4 4L19 6"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13.1a2 2 0 0 0-3.4 0Z"
+                  />
+                </svg>
+              )}
+            </div>
 
-          <span>{notification}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-neutral-900">
+                {notification.type === "success" ? "Success" : "Something went wrong"}
+              </p>
+
+              <p className="mt-0.5 break-words text-xs leading-5 text-neutral-500 sm:text-sm">
+                {notification.message}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              onClick={() =>
+                setNotification({ message: "", type: "success" })
+              }
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+          </div>
         </div>
       )}
+
     </div>
   );
 }

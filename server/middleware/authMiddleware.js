@@ -3,6 +3,15 @@ const jwt = require("jsonwebtoken");
 
 function authMiddleware(req, res, next) {
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is missing from environment variables.");
+
+      return res.status(500).json({
+        success: false,
+        message: "Authentication service is not configured.",
+      });
+    }
+
     const token = req.cookies?.adminToken;
 
     if (!token) {
@@ -12,7 +21,13 @@ function authMiddleware(req, res, next) {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET,
+      {
+        algorithms: ["HS256"],
+      }
+    );
 
     if (decoded.role !== "admin") {
       return res.status(403).json({
