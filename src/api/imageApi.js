@@ -1,5 +1,4 @@
-
-const API_URL = "http://localhost:5000/api/images";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/images`;
 
 // Fetch all public gallery images
 export const getImages = async () => {
@@ -14,7 +13,7 @@ export const getImages = async () => {
   return data.images;
 };
 
-// Upload an image (admin authentication required)
+// Upload an image
 export const uploadImage = async (title, file) => {
   const formData = new FormData();
 
@@ -36,7 +35,7 @@ export const uploadImage = async (title, file) => {
   return data.image;
 };
 
-// Delete an image (admin authentication required)
+// Delete an image
 export const deleteImage = async (id) => {
   const response = await fetch(`${API_URL}/${encodeURIComponent(id)}`, {
     method: "DELETE",
@@ -52,7 +51,7 @@ export const deleteImage = async (id) => {
   return data;
 };
 
-
+// Update image
 export const updateImage = async (id, title) => {
   const response = await fetch(
     `${API_URL}/${encodeURIComponent(id)}`,
