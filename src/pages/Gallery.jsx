@@ -160,6 +160,14 @@ function Gallery() {
             All
           </h2>
 
+          <div className="flex min-h-[70vh] items-center justify-center gap-3">
+            <LoaderCircle className="animate-spin" size={25} />
+
+            <p className="text-sm text-neutral-500">
+              Loading image...
+            </p>
+          </div>
+
           {isLoading ? (
             <p className="py-8 text-center text-neutral-500">
               {searchQuery.trim()
