@@ -161,26 +161,31 @@ function Gallery() {
           </h2>
 
           {isLoading ? (
-            <p className="py-8 text-center text-neutral-500">
-              {searchQuery.trim()
-                ? `No images found for "${searchQuery}".`
-                : "No images were found."}
-            </p>
+
+            <div className="flex min-h-[60vh] items-center justify-center gap-3">
+              <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-neutral-200 border-t-neutral-800" />
+              <p className="text-sm text-neutral-500">
+                Loading images...
+              </p>
+            </div>
           ) : error ? (
             <div className="py-8 text-center">
               <p className="text-red-600">{error}</p>
 
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="mt-3 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
-              >
-                Try Again
-              </button>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-3 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+          >
+            Try Again
+          </button>
+
             </div>
           ) : filteredPins.length === 0 ? (
             <p className="py-8 text-center text-neutral-500">
-              No images were found.
+              {searchQuery.trim()
+                ? `No images found for "${searchQuery}".`
+                : "No images were found."}
             </p>
           ) : (
             <div className="mb-20 columns-2 gap-4 sm:mb-5 sm:columns-3 lg:mb-4 lg:columns-4 xl:mb-2 xl:columns-5">
