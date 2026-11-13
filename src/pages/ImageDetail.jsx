@@ -613,7 +613,7 @@ function ImageDetail() {
       <div className="min-h-screen bg-white">
         <Sidebar />
 
-        <div className="ml-0 min-h-screen md:ml-[84px]">
+        <div className="ml-0 min-h-screen md:ml-21">
           <Header onSearch={handleSearch} />
 
           <div className="flex min-h-[70vh] items-center justify-center gap-3">
@@ -634,7 +634,7 @@ function ImageDetail() {
       <div className="min-h-screen bg-white">
         <Sidebar />
 
-        <div className="ml-0 min-h-screen md:ml-[84px]">
+        <div className="ml-0 min-h-screen md:ml-21">
           <Header onSearch={handleSearch} />
 
           <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3 px-4">
@@ -661,7 +661,7 @@ function ImageDetail() {
     <div className="min-h-screen bg-white">
       <Sidebar />
 
-      <div className="ml-0 min-h-screen md:ml-[84px]">
+      <div className="ml-0 min-h-screen md:ml-21">
         <Header onSearch={handleSearch} />
 
         <main className="px-4 pb-20 pt-5 sm:px-6 lg:px-8">
@@ -675,11 +675,11 @@ function ImageDetail() {
           </button>
 
           {/* Main image detail section */}
-          <section className="mx-auto grid max-w-[1350px] grid-cols-1 overflow-hidden rounded-[24px] border border-neutral-200 bg-white lg:grid-cols-2">
+          <section className="mx-auto grid max-w-337.5 grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white lg:grid-cols-2">
 
             {/* Main image */}
             <div
-              className="relative flex h-[420px] items-center justify-center overflow-hidden bg-neutral-100 sm:h-[560px] lg:h-[min(75vh,760px)]"
+              className="relative flex h-105 items-center justify-center overflow-hidden bg-neutral-100 sm:h-140 lg:h-[min(75vh,760px)]"
               onContextMenu={(event) => event.preventDefault()}
             >
               <img
@@ -707,7 +707,7 @@ function ImageDetail() {
             </div>
 
             {/* Image information */}
-            <div className="flex min-h-[420px] flex-col p-5 sm:p-8 lg:min-h-0 lg:p-10">
+            <div className="flex min-h-105 flex-col p-5 sm:p-8 lg:min-h-0 lg:p-10">
 
               {/* Top actions */}
               <div className="flex items-center justify-between">
@@ -744,7 +744,7 @@ function ImageDetail() {
 
               {/* Image title */}
               <div className="mt-8">
-                <h1 className="break-words text-2xl font-semibold text-neutral-900 sm:text-3xl">
+                <h1 className="wrap-break-word text-2xl font-semibold text-neutral-900 sm:text-3xl">
                   {selectedPin.title}
                 </h1>
               </div>
@@ -818,7 +818,7 @@ function ImageDetail() {
                     key={index}
                     className="mb-5 break-inside-avoid"
                   >
-                    <div className="min-h-[150px] w-full animate-pulse rounded-2xl bg-neutral-200" />
+                    <div className="min-h-37.5 w-full animate-pulse rounded-2xl bg-neutral-200" />
                   </div>
                 ))}
               </div>
@@ -885,7 +885,7 @@ function ImageDetail() {
                       {/* Skeleton */}
                       <div
                         aria-hidden="true"
-                        className="pin-skeleton absolute inset-0 z-0 min-h-[150px] animate-pulse bg-neutral-200"
+                        className="pin-skeleton absolute inset-0 z-0 min-h-37.5 animate-pulse bg-neutral-200"
                       />
 
                       {/* Save button */}
@@ -965,7 +965,7 @@ function ImageDetail() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-4 left-1/2 z-[100] w-[calc(100%-32px)] max-w-[420px] -translate-x-1/2 sm:bottom-6"
+          className="fixed bottom-4 left-1/2 z-100 w-[calc(100%-32px)] max-w-105 -translate-x-1/2 sm:bottom-6"
         >
           <div
             className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:px-5 ${
@@ -1024,7 +1024,7 @@ function ImageDetail() {
                   : "Something went wrong"}
               </p>
 
-              <p className="mt-0.5 break-words text-xs leading-5 text-neutral-500 sm:text-sm">
+              <p className="mt-0.5 wrap-break-word text-xs leading-5 text-neutral-500 sm:text-sm">
                 {notification.message}
               </p>
             </div>

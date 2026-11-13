@@ -309,7 +309,7 @@ function Gallery() {
     <div className="min-h-screen bg-white">
       <Sidebar />
 
-      <div className="ml-0 min-h-screen md:ml-[84px]">
+      <div className="ml-0 min-h-screen md:ml-21">
         <Header onSearch={handleSearch} />
 
         <main className="px-4 sm:px-6">
@@ -458,7 +458,7 @@ function Gallery() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-4 left-1/2 z-[100] w-[calc(100%-32px)] max-w-[420px] -translate-x-1/2 sm:bottom-6"
+          className="fixed bottom-4 left-1/2 z-100 w-[calc(100%-32px)] max-w-105 -translate-x-1/2 sm:bottom-6"
         >
           <div
             className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:px-5 ${
@@ -512,7 +512,7 @@ function Gallery() {
                 {notification.type === "success" ? "Success" : "Something went wrong"}
               </p>
 
-              <p className="mt-0.5 break-words text-xs leading-5 text-neutral-500 sm:text-sm">
+              <p className="mt-0.5 wrap-break-word text-xs leading-5 text-neutral-500 sm:text-sm">
                 {notification.message}
               </p>
             </div>
