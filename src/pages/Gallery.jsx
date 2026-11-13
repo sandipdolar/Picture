@@ -1,16 +1,19 @@
-
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Header from "../Component/HeaderComponent/Header";
 import Sidebar from "../Component/SidebarComponent/Sidebar";
-import observeImages from "../../Observer";
 import { getImages } from "../api/imageApi";
 
-import { Download, X } from "lucide-react";
+import { X } from "lucide-react";
 
-// Return a shuffled copy without changing the original array
-function shuffleImages(images) {
+const shuffleImages = (images) => {
   const shuffled = [...images];
 
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -20,20 +23,51 @@ function shuffleImages(images) {
   }
 
   return shuffled;
-}
+};
 
 function Gallery() {
 
   const navigate = useNavigate();
 
+  const PAGE_SIZE = 20;
+
   const [notification, setNotification] = useState({
     message: "",
     type: "success",
   });
+
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [loadMoreError, setLoadMoreError] = useState("");
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const sentinelRef = useRef(null);
+  const loadingMoreRef = useRef(false);
+  const requestIdRef = useRef(0);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchQuery = searchParams.get("search") || "";
+
+  useEffect(() => {
+    const imageElements = document.querySelectorAll(".pin-image");
+
+    imageElements.forEach((img) => {
+      if (img.complete) {
+        const skeleton =
+          img.parentElement.querySelector(".pin-skeleton");
+
+        img.classList.remove("opacity-0");
+        img.classList.add("opacity-100");
+
+        skeleton?.classList.add("hidden");
+      }
+    });
+  }, [images]);
 
   useEffect(() => {
     if (!notification.message) return;
@@ -48,25 +82,165 @@ function Gallery() {
     return () => clearTimeout(timer);
   }, [notification.message, notification.type]);
 
-  // Fetch images from the backend API
+  // Fetch the first page whenever the search query changes
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
+
+    loadingMoreRef.current = false;
+
+    setImages([]);
+    setPage(1);
+    setHasMore(true);
+    setError("");
+    setLoadMoreError("");
+    setIsLoading(true);
+    setIsLoadingMore(false);
+
     const fetchImages = async () => {
       try {
-        setIsLoading(true);
-        setError("");
+        const data = await getImages({
+          page: 1,
+          limit: PAGE_SIZE,
+          search: searchQuery,
+        });
 
-        const data = await getImages();
-        setImages(shuffleImages(data));
+        if (requestId !== requestIdRef.current) return;
+
+        setImages(shuffleImages(data.images));
+        setPage(1);
+        setHasMore(data.pagination.hasNextPage);
       } catch (error) {
+        if (requestId !== requestIdRef.current) return;
+
         console.error("Could not fetch images:", error);
         setError("Could not load images. Please try again.");
       } finally {
-        setIsLoading(false);
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchImages();
-  }, []);
+    const timer = setTimeout(fetchImages, searchQuery ? 300 : 0);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  const handleSearch = (value) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (value.trim()) {
+      params.set("search", value.trim());
+    } else {
+      params.delete("search");
+    }
+
+    setSearchParams(params, { replace: true });
+  };
+
+  // Fetch the next page of images
+  const loadMoreImages = useCallback(async () => {
+    if (
+      loadingMoreRef.current ||
+      !hasMore ||
+      isLoading
+    ) {
+      return;
+    }
+
+    loadingMoreRef.current = true;
+
+    const requestId = requestIdRef.current;
+    const nextPage = page + 1;
+
+    setIsLoadingMore(true);
+    setLoadMoreError("");
+
+    try {
+      const data = await getImages({
+        page: nextPage,
+        limit: PAGE_SIZE,
+        search: searchQuery,
+      });
+
+      // Ignore outdated requests
+      if (requestId !== requestIdRef.current) return;
+
+      // Prevent duplicate images
+      setImages((previousImages) => {
+        const existingIds = new Set(
+          previousImages.map((image) => image._id)
+        );
+
+        const newImages = data.images.filter(
+          (image) => !existingIds.has(image._id)
+        );
+
+        return [...previousImages, ...shuffleImages(newImages)];
+      });
+
+      setPage(nextPage);
+      setHasMore(data.pagination.hasNextPage);
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+
+      console.error("Could not load more images:", error);
+      setLoadMoreError("Could not load more images. Please try again.");
+    } finally {
+      if (requestId === requestIdRef.current) {
+        loadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [page, hasMore, isLoading, searchQuery]);
+
+  // Detect when the user reaches the bottom of the gallery
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+
+    if (
+      !sentinel ||
+      isLoading ||
+      isLoadingMore ||
+      !hasMore ||
+      loadMoreError ||
+      error
+    ) {
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+
+        if (entries[0].isIntersecting) {
+          loadMoreImages();
+        }
+      },
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: "500px",
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [
+    loadMoreImages,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    loadMoreError,
+    error,
+    images.length,
+  ]);
 
   // Convert API image records into the format used by the gallery
   const pins = useMemo(() => {
@@ -76,23 +250,6 @@ function Gallery() {
       title: image.title,
     }));
   }, [images]);
-
-  const filteredPins = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    if (!query) {
-      return pins;
-    }
-
-    return pins.filter((pin) =>
-      pin.title.toLowerCase().includes(query)
-    );
-  }, [pins, searchQuery]);
-
-  // Preserve the existing lazy-loading observer
-  useEffect(() => {
-    return observeImages();
-  }, [filteredPins]);
 
   const handleSave = async (pin) => {
     try {
@@ -153,7 +310,7 @@ function Gallery() {
       <Sidebar />
 
       <div className="ml-0 min-h-screen md:ml-[84px]">
-        <Header onSearch={setSearchQuery} />
+        <Header onSearch={handleSearch} />
 
         <main className="px-4 sm:px-6">
           <h2 className="mb-7 mt-6 w-fit border-b-2 border-black pb-2 font-medium meet">
@@ -181,7 +338,7 @@ function Gallery() {
           </button>
 
             </div>
-          ) : filteredPins.length === 0 ? (
+          ) : pins.length === 0 ? (
             <p className="py-8 text-center text-neutral-500">
               {searchQuery.trim()
                 ? `No images found for "${searchQuery}".`
@@ -189,7 +346,7 @@ function Gallery() {
             </p>
           ) : (
             <div className="mb-20 columns-2 gap-4 sm:mb-5 sm:columns-3 lg:mb-4 lg:columns-4 xl:mb-2 xl:columns-5">
-              {filteredPins.map((pin) => (
+              {pins.map((pin) => (
                 <article
                   key={pin.id}
                   className="mb-5 break-inside-avoid"
@@ -200,8 +357,7 @@ function Gallery() {
                     onDragStart={(event) => event.preventDefault()}
                   >
                     <img
-                      src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                      data-src={pin.image}
+                      src={pin.image}
                       alt={pin.title}
                       loading="lazy"
                       draggable={false}
@@ -218,18 +374,24 @@ function Gallery() {
                       }}
                       className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-0 transition-opacity duration-300"
                       onLoad={(event) => {
-                        event.currentTarget.classList.remove("opacity-0");
+                        const img = event.currentTarget;
+
+                        img.classList.remove("opacity-0");
+                        img.classList.add("opacity-100");
 
                         const skeleton =
-                          event.currentTarget.parentElement.querySelector(".pin-skeleton");
+                          img.parentElement.querySelector(".pin-skeleton");
 
                         skeleton?.classList.add("hidden");
                       }}
                       onError={(event) => {
-                        event.currentTarget.classList.remove("opacity-0");
+                        const img = event.currentTarget;
+
+                        img.classList.remove("opacity-0");
+                        img.classList.add("opacity-100");
 
                         const skeleton =
-                          event.currentTarget.parentElement.querySelector(".pin-skeleton");
+                          img.parentElement.querySelector(".pin-skeleton");
 
                         skeleton?.classList.add("hidden");
                       }}
@@ -240,7 +402,7 @@ function Gallery() {
                       className="pin-skeleton absolute inset-0 z-0 animate-pulse bg-neutral-200"
                     />
 
-                    <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" >
+                    <div className="absolute right-2 top-2 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100" >
                       <button
                         type="button"
                         aria-label={`Copy ${pin.title}`}
@@ -259,6 +421,35 @@ function Gallery() {
               ))}
             </div>
           )}
+
+          {/* Infinite scroll loader */}
+          {isLoadingMore && (
+            <div className="flex items-center justify-center gap-3 py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-neutral-200 border-t-neutral-800" />
+
+              <p className="text-sm text-neutral-500">
+                Loading more images...
+              </p>
+            </div>
+          )}
+
+          {/* Retry loading more images */}
+          {loadMoreError && (
+            <div className="py-6 text-center">
+              <p className="text-sm text-red-600">{loadMoreError}</p>
+
+              <button
+                type="button"
+                onClick={loadMoreImages}
+                className="mt-3 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Infinite scroll detection element */}
+          <div ref={sentinelRef} className="h-2 w-full" />
         </main>
       </div>
 

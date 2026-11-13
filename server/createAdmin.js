@@ -26,14 +26,12 @@ async function createAdmin() {
       existingAdmin.password = passwordHash;
       await existingAdmin.save();
 
-      console.log("Existing admin password updated successfully.");
     } else {
       await Admin.create({
         email,
         password: passwordHash,
       });
 
-      console.log("Admin account created successfully.");
     }
   } catch (error) {
     console.error("Admin setup failed:", error.message);

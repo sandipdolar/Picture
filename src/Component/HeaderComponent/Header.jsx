@@ -62,7 +62,6 @@ export default function Header({ onSearch }) {
             type="button"
             aria-label="Visual search"
             title="Visual search"
-            onClick={() => console.log("Visual search clicked")}
             className="ml-1 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral-600 transition-colors hover:bg-neutral-200 sm:flex"
           >
             <Camera size={21} strokeWidth={1.8} />
@@ -72,7 +71,6 @@ export default function Header({ onSearch }) {
             type="button"
             aria-label="Voice search"
             title="Voice search"
-            onClick={() => console.log("Voice search clicked")}
             className="ml-1 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral-600 transition-colors hover:bg-neutral-200 md:flex"
           >
             <Mic size={21} strokeWidth={1.8} />
@@ -125,7 +123,6 @@ export default function Header({ onSearch }) {
                     key={item}
                     type="button"
                     onClick={() => {
-                      console.log(`${item} clicked`);
                       closeProfile();
                     }}
                     className="mt-1 w-full rounded-xl px-3 py-2.5 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-black"

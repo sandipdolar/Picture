@@ -1,6 +1,16 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 import {
   ArrowLeft,
@@ -17,8 +27,10 @@ import {
 import Header from "../Component/HeaderComponent/Header";
 import Sidebar from "../Component/SidebarComponent/Sidebar";
 
-import observeImages from "../../Observer";
-import { getImages } from "../api/imageApi";
+import {
+  getImages,
+  getImageById,
+} from "../api/imageApi";
 
 // Shuffle images without modifying the original array
 function shuffleImages(images) {
@@ -27,7 +39,10 @@ function shuffleImages(images) {
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
 
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [shuffled[i], shuffled[j]] = [
+      shuffled[j],
+      shuffled[i],
+    ];
   }
 
   return shuffled;
@@ -35,19 +50,54 @@ function shuffleImages(images) {
 
 function ImageDetail() {
   const { id } = useParams();
+
   const navigate = useNavigate();
 
-  const [images, setImages] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const PAGE_SIZE = 20;
 
+  // URL search parameters
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchQuery = searchParams.get("search") || "";
+
+  // Selected image states
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  // Related images states
+  const [images, setImages] = useState([]);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(true);
+
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const [loadMoreError, setLoadMoreError] = useState("");
+
+  const [isInitialRelatedError, setIsInitialRelatedError] = useState(false);
+
+  const [page, setPage] = useState(1);
+
+  const [hasMore, setHasMore] = useState(true);
+
+  // Like state
   const [isLiked, setIsLiked] = useState(false);
 
+  // Notification state
   const [notification, setNotification] = useState({
     message: "",
     type: "success",
   });
+
+  // Refs
+  const sentinelRef = useRef(null);
+
+  const loadingMoreRef = useRef(false);
+
+  const selectedRequestIdRef = useRef(0);
+
+  const relatedRequestIdRef = useRef(0);
 
   // Scroll to top whenever the selected image changes
   useEffect(() => {
@@ -63,36 +113,145 @@ function ImageDetail() {
     if (!notification.message) return;
 
     const timer = setTimeout(() => {
-        setNotification({
+      setNotification({
         message: "",
         type: "success",
-        });
+      });
     }, 3000);
 
     return () => clearTimeout(timer);
-    }, [notification.message, notification.type]);
+  }, [notification.message, notification.type]);
 
-  // Fetch all images from backend
+  // Handle search through URL parameters
+  const handleSearch = (value) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (value.trim()) {
+      params.set("search", value.trim());
+    } else {
+      params.delete("search");
+    }
+
+    setSearchParams(params, {
+      replace: true,
+    });
+  };
+
+  // Fetch the selected image independently
   useEffect(() => {
-    const fetchImages = async () => {
+    const requestId = ++selectedRequestIdRef.current;
+
+    setSelectedImage(null);
+
+    setIsLoading(true);
+
+    setError("");
+
+    setIsLiked(false);
+
+    const fetchSelectedImage = async () => {
       try {
-        setIsLoading(true);
-        setError("");
+        const image = await getImageById(id);
 
-        const data = await getImages();
+        if (requestId !== selectedRequestIdRef.current) {
+          return;
+        }
 
-        setImages(shuffleImages(data));
+        setSelectedImage(image);
       } catch (error) {
-        console.error("Could not fetch images:", error);
+        if (requestId !== selectedRequestIdRef.current) {
+          return;
+        }
 
-        setError("Could not load images. Please try again.");
+        console.error("Could not fetch selected image:", error);
+
+        setError(
+          error.message || "Could not load image. Please try again."
+        );
       } finally {
-        setIsLoading(false);
+        if (requestId === selectedRequestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
-    fetchImages();
-  }, []);
+    fetchSelectedImage();
+
+    return () => {
+      selectedRequestIdRef.current++;
+    };
+  }, [id]);
+
+  // Fetch the first page of related images whenever search changes
+  useEffect(() => {
+    const requestId = ++relatedRequestIdRef.current;
+
+    loadingMoreRef.current = false;
+
+    setImages([]);
+    setIsLoadingRelated(true);
+
+    setPage(1);
+
+    setHasMore(true);
+
+    setLoadMoreError("");
+    setIsInitialRelatedError(false);
+
+    setIsLoadingMore(false);
+
+    const fetchRelatedImages = async () => {
+      try {
+        const data = await getImages({
+          page: 1,
+          limit: PAGE_SIZE,
+          search: searchQuery,
+        });
+
+        if (requestId !== relatedRequestIdRef.current) {
+          return;
+        }
+
+        // Exclude the currently selected image
+        const relatedImages = data.images.filter(
+          (image) => image._id !== id
+        );
+
+        setImages(shuffleImages(relatedImages));
+
+        setPage(1);
+
+        setHasMore(data.pagination.hasNextPage);
+      } catch (error) {
+        if (requestId !== relatedRequestIdRef.current) {
+          return;
+        }
+
+        console.error("Could not fetch related images:", error);
+
+        setIsInitialRelatedError(true);
+
+        setLoadMoreError(
+          "Could not load related images. Please try again."
+        );
+      } finally {
+        if (requestId === relatedRequestIdRef.current) {
+          setIsLoadingRelated(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(
+      fetchRelatedImages,
+      searchQuery ? 300 : 0
+    );
+
+    return () => {
+      clearTimeout(timer);
+
+      relatedRequestIdRef.current++;
+    };
+  }, [searchQuery, id]);
 
   // Convert API images into gallery pin format
   const pins = useMemo(() => {
@@ -103,97 +262,266 @@ function ImageDetail() {
     }));
   }, [images]);
 
-  // Find currently selected pin
+  // Convert selected image into pin format
   const selectedPin = useMemo(() => {
-    return pins.find((pin) => pin.id === id);
-  }, [pins, id]);
+    if (!selectedImage) return null;
 
-  // Get remaining images and shuffle their order whenever the selected image changes
-    const relatedPins = useMemo(() => {
-    const filteredPins = pins.filter((pin) => pin.id !== id);
-
-    return shuffleImages(filteredPins);
-    }, [pins, id]);
-
-  // Initialize lazy loading for related images
-  useEffect(() => {
-    if (!relatedPins.length) return;
-
-    return observeImages();
-  }, [relatedPins]);
-
-    // Show notification
-    const showNotification = (message, type = "success") => {
-    setNotification({
-        message,
-        type,
-    });
+    return {
+      id: selectedImage._id,
+      image: selectedImage.imageUrl,
+      title: selectedImage.title || "Untitled Image",
     };
+  }, [selectedImage]);
+
+  // Show notification
+  const showNotification = (message, type = "success") => {
+    setNotification({
+      message,
+      type,
+    });
+  };
+
+  const retryRelatedImages = async () => {
+    const requestId = ++relatedRequestIdRef.current;
+
+    loadingMoreRef.current = false;
+
+    setIsLoadingRelated(true);
+    setIsLoadingMore(false);
+    setLoadMoreError("");
+    setIsInitialRelatedError(false);
+
+    try {
+      const data = await getImages({
+        page: 1,
+        limit: PAGE_SIZE,
+        search: searchQuery,
+      });
+
+      if (requestId !== relatedRequestIdRef.current) {
+        return;
+      }
+
+      const relatedImages = data.images.filter(
+        (image) => image._id !== id
+      );
+
+      setImages(shuffleImages(relatedImages));
+      setPage(1);
+      setHasMore(data.pagination.hasNextPage);
+    } catch (error) {
+      if (requestId !== relatedRequestIdRef.current) {
+        return;
+      }
+
+      console.error("Could not retry related images:", error);
+
+      setIsInitialRelatedError(true);
+
+      setLoadMoreError(
+        "Could not load related images. Please try again."
+      );
+    } finally {
+      if (requestId === relatedRequestIdRef.current) {
+        setIsLoadingRelated(false);
+      }
+    }
+};
+
+  // Fetch the next page of related images
+  const loadMoreImages = useCallback(async () => {
+    if (
+      loadingMoreRef.current ||
+      isLoadingRelated ||
+      !hasMore
+    ) {
+      return;
+    }
+
+    loadingMoreRef.current = true;
+
+    const requestId = relatedRequestIdRef.current;
+
+    const nextPage = page + 1;
+
+    setIsLoadingMore(true);
+
+    setLoadMoreError("");
+
+    try {
+      const data = await getImages({
+        page: nextPage,
+        limit: PAGE_SIZE,
+        search: searchQuery,
+      });
+
+      // Ignore outdated requests
+      if (requestId !== relatedRequestIdRef.current) {
+        return;
+      }
+
+      // Exclude selected image
+      const filteredImages = data.images.filter(
+        (image) => image._id !== id
+      );
+
+      // Randomize the newly fetched images
+      const newImages = shuffleImages(filteredImages);
+
+      // Prevent duplicate images
+      setImages((previousImages) => {
+        const existingIds = new Set(
+          previousImages.map((image) => image._id)
+        );
+
+        const uniqueImages = newImages.filter(
+          (image) => !existingIds.has(image._id)
+        );
+
+        return [
+          ...previousImages,
+          ...uniqueImages,
+        ];
+      });
+
+      setPage(nextPage);
+
+      setHasMore(data.pagination.hasNextPage);
+    } catch (error) {
+      if (requestId !== relatedRequestIdRef.current) {
+        return;
+      }
+
+      setIsInitialRelatedError(false);
+
+      console.error("Could not load more related images:", error);
+
+      setLoadMoreError(
+        "Could not load more images. Please try again."
+      );
+    } finally {
+      if (requestId === relatedRequestIdRef.current) {
+        loadingMoreRef.current = false;
+
+        setIsLoadingMore(false);
+      }
+    }
+  }, [page, hasMore, searchQuery, id, isLoadingRelated]);
+
+  // Detect when the user reaches the bottom
+  useEffect(() => {
+
+    const sentinel = sentinelRef.current;
+
+    if (
+      !sentinel ||
+      isLoading ||
+      isLoadingRelated ||
+      isLoadingMore ||
+      !hasMore ||
+      loadMoreError ||
+      !("IntersectionObserver" in window)
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+
+        if (entries[0].isIntersecting) {
+          loadMoreImages();
+        }
+      },
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: "500px",
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [
+    loadMoreImages,
+    isLoading,
+    isLoadingRelated,
+    isLoadingMore,
+    hasMore,
+    loadMoreError,
+    pins.length,
+  ]);
 
   // Copy image to clipboard
   const handleSave = async (pin) => {
     showNotification("Copying image...", "success");
 
     try {
-        if (!navigator.clipboard || !window.ClipboardItem) {
+      if (!navigator.clipboard || !window.ClipboardItem) {
         throw new Error("Image clipboard is not supported.");
-        }
+      }
 
-        const response = await fetch(pin.image);
+      const response = await fetch(pin.image);
 
-        if (!response.ok) {
+      if (!response.ok) {
         throw new Error("Failed to load image.");
-        }
+      }
 
-        const blob = await response.blob();
+      const blob = await response.blob();
 
-        let pngBlob = blob;
+      let pngBlob = blob;
 
-        if (blob.type !== "image/png") {
+      if (blob.type !== "image/png") {
         const bitmap = await createImageBitmap(blob);
+
         const canvas = document.createElement("canvas");
 
         canvas.width = bitmap.width;
+
         canvas.height = bitmap.height;
 
         const context = canvas.getContext("2d");
+
         context.drawImage(bitmap, 0, 0);
+
         bitmap.close();
 
         pngBlob = await new Promise((resolve, reject) => {
-            canvas.toBlob((result) => {
+          canvas.toBlob((result) => {
             if (result) {
-                resolve(result);
+              resolve(result);
             } else {
-                reject(new Error("Image conversion failed."));
+              reject(new Error("Image conversion failed."));
             }
-            }, "image/png");
+          }, "image/png");
         });
-        }
+      }
 
-        await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": pngBlob }),
-        ]);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "image/png": pngBlob,
+        }),
+      ]);
 
-        showNotification("Image copied successfully!", "success");
-
+      showNotification(
+        "Image copied successfully!",
+        "success"
+      );
     } catch (error) {
-        console.error("Could not copy image:", error);
+      console.error("Could not copy image:", error);
 
-        showNotification(
+      showNotification(
         "Could not copy image. Check browser permissions.",
         "error"
-        );
+      );
     }
-    };
+  };
 
   // Download image
   const handleDownload = async (pin) => {
-    
     showNotification("Downloading image...", "success");
-    
+
     try {
-    
       const response = await fetch(pin.image);
 
       if (!response.ok) {
@@ -220,10 +548,13 @@ function ImageDetail() {
       const link = document.createElement("a");
 
       link.href = imageUrl;
+
       link.download = `${safeTitle}.${extension}`;
 
       document.body.appendChild(link);
+
       link.click();
+
       link.remove();
 
       setTimeout(() => {
@@ -246,22 +577,28 @@ function ImageDetail() {
 
   // Share image URL
   const handleShare = async () => {
-    
     showNotification("Copying image link...", "success");
-    
-    try {
 
+    try {
       if (!navigator.clipboard) {
         throw new Error("Clipboard is not supported.");
       }
 
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(
+        window.location.href
+      );
 
-      showNotification("Image link copied successfully!", "success");
+      showNotification(
+        "Image link copied successfully!",
+        "success"
+      );
     } catch (error) {
       console.error("Share error:", error);
 
-      showNotification("Could not copy image link.", "error");
+      showNotification(
+        "Could not copy image link.",
+        "error"
+      );
     }
   };
 
@@ -277,7 +614,7 @@ function ImageDetail() {
         <Sidebar />
 
         <div className="ml-0 min-h-screen md:ml-[84px]">
-          <Header onSearch={setSearchQuery} />
+          <Header onSearch={handleSearch} />
 
           <div className="flex min-h-[70vh] items-center justify-center gap-3">
             <LoaderCircle className="animate-spin" size={25} />
@@ -298,7 +635,7 @@ function ImageDetail() {
         <Sidebar />
 
         <div className="ml-0 min-h-screen md:ml-[84px]">
-          <Header onSearch={setSearchQuery} />
+          <Header onSearch={handleSearch} />
 
           <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3 px-4">
             <ImageOff size={45} className="text-neutral-400" />
@@ -325,7 +662,7 @@ function ImageDetail() {
       <Sidebar />
 
       <div className="ml-0 min-h-screen md:ml-[84px]">
-        <Header onSearch={setSearchQuery} />
+        <Header onSearch={handleSearch} />
 
         <main className="px-4 pb-20 pt-5 sm:px-6 lg:px-8">
           <button
@@ -339,6 +676,7 @@ function ImageDetail() {
 
           {/* Main image detail section */}
           <section className="mx-auto grid max-w-[1350px] grid-cols-1 overflow-hidden rounded-[24px] border border-neutral-200 bg-white lg:grid-cols-2">
+
             {/* Main image */}
             <div
               className="relative flex h-[420px] items-center justify-center overflow-hidden bg-neutral-100 sm:h-[560px] lg:h-[min(75vh,760px)]"
@@ -370,6 +708,7 @@ function ImageDetail() {
 
             {/* Image information */}
             <div className="flex min-h-[420px] flex-col p-5 sm:p-8 lg:min-h-0 lg:p-10">
+
               {/* Top actions */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-5">
@@ -411,8 +750,8 @@ function ImageDetail() {
               </div>
 
               {/* Image information */}
-              {/* Image information */}
               <div className="mt-7 flex items-center gap-3">
+
                 {/* Interactive Heart Button */}
                 <button
                   type="button"
@@ -420,16 +759,16 @@ function ImageDetail() {
                   aria-label="Like image"
                   className={`group flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 ease-in-out cursor-pointer ${
                     isLiked
-                      ? 'bg-rose-100 hover:bg-rose-200 scale-105'
-                      : 'bg-neutral-100 hover:bg-neutral-200 active:scale-95'
+                      ? "bg-rose-100 hover:bg-rose-200 scale-105"
+                      : "bg-neutral-100 hover:bg-neutral-200 active:scale-95"
                   }`}
                 >
                   <Heart
                     size={21}
                     className={`transition-all duration-300 ease-in-out ${
                       isLiked
-                        ? 'fill-rose-500 text-rose-500 scale-110'
-                        : 'text-neutral-700 group-hover:text-rose-500 group-hover:scale-110'
+                        ? "fill-rose-500 text-rose-500 scale-110"
+                        : "text-neutral-700 group-hover:text-rose-500 group-hover:scale-110"
                     }`}
                   />
                 </button>
@@ -471,12 +810,24 @@ function ImageDetail() {
 
           {/* Related images section */}
           <section className="mt-12 w-full">
-            {relatedPins.length > 0 ? (
+
+            {isLoadingRelated ? (
+              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
+                {Array.from({ length: 12 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="mb-5 break-inside-avoid"
+                  >
+                    <div className="min-h-[150px] w-full animate-pulse rounded-2xl bg-neutral-200" />
+                  </div>
+                ))}
+              </div>
+            ) : pins.length > 0 ? (
               <div
                 key={id}
                 className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6"
               >
-                {relatedPins.map((pin) => (
+                {pins.map((pin) => (
                   <article
                     key={pin.id}
                     className="mb-5 break-inside-avoid"
@@ -486,10 +837,10 @@ function ImageDetail() {
                       onContextMenu={(event) => event.preventDefault()}
                       onDragStart={(event) => event.preventDefault()}
                     >
+
                       {/* Lazy loading image */}
                       <img
-                        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                        data-src={pin.image}
+                        src={pin.image}
                         alt={pin.title}
                         loading="lazy"
                         draggable={false}
@@ -504,10 +855,11 @@ function ImageDetail() {
                             event.key === " "
                           ) {
                             event.preventDefault();
+
                             handleImageClick(pin);
                           }
                         }}
-                        className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-0 transition-opacity duration-300"
+                        className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-100 transition-opacity duration-300"
                         onLoad={(event) => {
                           event.currentTarget.classList.remove("opacity-0");
 
@@ -544,7 +896,9 @@ function ImageDetail() {
                           title="Copy image"
                           onClick={(event) => {
                             event.stopPropagation();
+
                             event.currentTarget.blur();
+
                             handleSave(pin);
                           }}
                           className="flex h-8 items-center justify-center rounded-full bg-red-600 px-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
@@ -557,10 +911,51 @@ function ImageDetail() {
                 ))}
               </div>
             ) : (
-              <div className="py-16 text-center text-neutral-500">
-                No more images available.
+              !isLoadingMore &&
+              !loadMoreError && (
+                <div className="py-16 text-center text-neutral-500">
+                  No more images available.
+                </div>
+              )
+            )}
+
+            {/* Loading more images */}
+            {isLoadingMore && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-neutral-200 border-t-neutral-800" />
+
+                <p className="text-sm text-neutral-500">
+                  Loading more images...
+                </p>
               </div>
             )}
+
+            {/* Retry loading more images */}
+            {loadMoreError && (
+              <div className="py-6 text-center">
+                <p className="text-sm text-red-600">
+                  {loadMoreError}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    isInitialRelatedError
+                      ? retryRelatedImages
+                      : loadMoreImages
+                  }
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {/* Infinite scroll detection element */}
+            <div
+              ref={sentinelRef}
+              className="h-2 w-full"
+            />
+
           </section>
         </main>
       </div>
@@ -579,6 +974,7 @@ function ImageDetail() {
                 : "border-red-100"
             }`}
           >
+
             {/* Notification icon */}
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -614,7 +1010,7 @@ function ImageDetail() {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M12 9v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13.1a2 2 0 0 0-3.4 0Z"
+                    d="M12 9v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 1 1.7-3l7.5-13.1a2 2 0 0 1 3.4 0Z"
                   />
                 </svg>
               )}

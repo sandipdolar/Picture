@@ -67,12 +67,70 @@ const upload = multer({
 // GET /api/images - Public: fetch all images
 router.get("/", async (req, res) => {
   try {
-    const images = await Image.find().sort({ createdAt: -1 });
+    let { page = "1", limit = "20", search = "" } = req.query;
+
+    page = Number(page);
+    limit = Number(limit);
+    search = String(search).trim();
+
+    if (
+      !Number.isInteger(page) ||
+      !Number.isInteger(limit) ||
+      page < 1 ||
+      limit < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters.",
+      });
+    }
+
+    limit = Math.min(limit, 50);
+
+    if (search.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is too long.",
+      });
+    }
+
+    const filter = {};
+
+    if (search) {
+      const escapedSearch = search.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+
+      filter.title = {
+        $regex: escapedSearch,
+        $options: "i",
+      };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [images, totalImages] = await Promise.all([
+      Image.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Image.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalImages / limit);
 
     res.status(200).json({
       success: true,
-      count: images.length,
       images,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalImages,
+        totalPages,
+        hasNextPage: page < totalPages,
+      },
     });
   } catch (error) {
     console.error("Error fetching images:", error.message);
@@ -162,6 +220,41 @@ router.post(
     }
   }
 );
+
+// GET /api/images/:id - Public: fetch a single image
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid image ID.",
+      });
+    }
+
+    const image = await Image.findById(id);
+
+    if (!image) {
+      return res.status(404).json({
+        success: false,
+        message: "Image not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      image,
+    });
+  } catch (error) {
+    console.error("Error fetching image:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch image.",
+    });
+  }
+});
 
 // DELETE /api/images/:id - Admin only
 router.delete("/:id", authMiddleware, async (req, res) => {

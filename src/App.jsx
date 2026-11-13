@@ -8,6 +8,7 @@ import {
 
 import Gallery from "./pages/Gallery";
 import ImageDetail from "./pages/ImageDetail";
+import NotFound from "./pages/NotFound";
 
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
@@ -27,7 +28,7 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,16 +1,44 @@
-const API_URL = `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api/images`;
+const API_URL = `${(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")}/api/images`;
 
 // Fetch all public gallery images
-export const getImages = async () => {
-  const response = await fetch(API_URL);
+// Fetch paginated public gallery images
+export const getImages = async ({
+  page = 1,
+  limit = 20,
+  search = "",
+} = {}) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
 
+  if (search.trim()) {
+    params.set("search", search.trim());
+  }
+
+  const response = await fetch(`${API_URL}?${params.toString()}`);
   const data = await response.json();
 
   if (!response.ok || !data.success) {
     throw new Error(data.message || "Failed to fetch images.");
   }
 
-  return data.images;
+  return data;
+};
+
+// Fetch a single image by ID
+export const getImageById = async (id) => {
+  const response = await fetch(
+    `${API_URL}/${encodeURIComponent(id)}`
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Failed to fetch image.");
+  }
+
+  return data.image;
 };
 
 // Upload an image
