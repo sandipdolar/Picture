@@ -60,6 +60,8 @@ function ImageDetail() {
 
   const searchQuery = searchParams.get("search") || "";
 
+  const isSearching = searchQuery.trim().length > 0;
+
   // Selected image states
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -614,7 +616,7 @@ function ImageDetail() {
         <Sidebar />
 
         <div className="ml-0 min-h-screen md:ml-21">
-          <Header onSearch={handleSearch} />
+          <Header />
 
           <div className="flex min-h-[70vh] items-center justify-center gap-3">
             <LoaderCircle className="animate-spin" size={25} />
@@ -665,162 +667,168 @@ function ImageDetail() {
         <Header onSearch={handleSearch} />
 
         <main className="px-4 pb-20 pt-5 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
-            className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 transition hover:bg-neutral-200"
-          >
-            <ArrowLeft size={23} />
-          </button>
+          {isSearching && (
+            <h2 className="mb-7 mt-6 w-fit border-b-2 border-black pb-2 font-medium">
+              Search Results
+            </h2>
+          )}
+          {!isSearching && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                aria-label="Go back"
+                className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 transition hover:bg-neutral-200"
+              >
+                <ArrowLeft size={23} />
+              </button>
 
-          {/* Main image detail section */}
-          <section className="mx-auto grid max-w-337.5 grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white lg:grid-cols-2">
+              {/* Main image detail section */}
+              <section className="mx-auto grid max-w-337.5 grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white lg:grid-cols-2">
 
-            {/* Main image */}
-            <div
-              className="relative flex h-105 items-center justify-center overflow-hidden bg-neutral-100 sm:h-140 lg:h-[min(75vh,760px)]"
-              onContextMenu={(event) => event.preventDefault()}
-            >
-              <img
-                key={selectedPin.id}
-                src={selectedPin.image}
-                alt={selectedPin.title}
-                draggable={false}
-                onContextMenu={(event) => event.preventDefault()}
-                onDragStart={(event) => event.preventDefault()}
-                className="h-full w-full select-none object-contain"
-              />
-
-              {/* Main image actions */}
-              <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSave(selectedPin)}
-                  title="Copy image"
-                  aria-label="Copy image"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105 hover:bg-neutral-100"
+                {/* Main image */}
+                <div
+                  className="relative flex h-105 items-center justify-center overflow-hidden bg-neutral-100 sm:h-140 lg:h-[min(75vh,760px)]"
+                  onContextMenu={(event) => event.preventDefault()}
                 >
-                  <Copy size={19} />
-                </button>
-              </div>
-            </div>
-
-            {/* Image information */}
-            <div className="flex min-h-105 flex-col p-5 sm:p-8 lg:min-h-0 lg:p-10">
-
-              {/* Top actions */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    title="Share image"
-                    aria-label="Share image"
-                    className="rounded-full p-2 transition hover:bg-neutral-100"
-                  >
-                    <Share2 size={23} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(selectedPin)}
-                    title="Download image"
-                    aria-label="Download image"
-                    className="rounded-full p-2 transition hover:bg-neutral-100"
-                  >
-                    <Download size={22} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSave(selectedPin)}
-                  className="rounded-full bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
-                >
-                  Save
-                </button>
-              </div>
-
-              {/* Image title */}
-              <div className="mt-8">
-                <h1 className="wrap-break-word text-2xl font-semibold text-neutral-900 sm:text-3xl">
-                  {selectedPin.title}
-                </h1>
-              </div>
-
-              {/* Image information */}
-              <div className="mt-7 flex items-center gap-3">
-
-                {/* Interactive Heart Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsLiked(!isLiked)}
-                  aria-label="Like image"
-                  className={`group flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 ease-in-out cursor-pointer ${
-                    isLiked
-                      ? "bg-rose-100 hover:bg-rose-200 scale-105"
-                      : "bg-neutral-100 hover:bg-neutral-200 active:scale-95"
-                  }`}
-                >
-                  <Heart
-                    size={21}
-                    className={`transition-all duration-300 ease-in-out ${
-                      isLiked
-                        ? "fill-rose-500 text-rose-500 scale-110"
-                        : "text-neutral-700 group-hover:text-rose-500 group-hover:scale-110"
-                    }`}
+                  <img
+                    key={selectedPin.id}
+                    src={selectedPin.image}
+                    alt={selectedPin.title}
+                    draggable={false}
+                    onContextMenu={(event) => event.preventDefault()}
+                    onDragStart={(event) => event.preventDefault()}
+                    className="h-full w-full select-none object-contain"
                   />
-                </button>
 
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    Image Gallery
-                  </p>
-
-                  <p className="text-xs text-neutral-500">
-                    Discover more images
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex-1" />
-
-              {/* Bottom actions */}
-              <div className="mt-8 border-t border-neutral-200 pt-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-neutral-900">
-                    Explore more images
-                  </p>
-
-                  <div
-                    className="rounded-full p-2 transition hover:bg-neutral-100"
-                    title="More options"
-                  >
-                    <MoreHorizontal size={23} />
+                  {/* Main image actions */}
+                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSave(selectedPin)}
+                      title="Copy image"
+                      aria-label="Copy image"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105 hover:bg-neutral-100"
+                    >
+                      <Copy size={19} />
+                    </button>
                   </div>
                 </div>
 
-                <p className="text-sm leading-6 text-neutral-500">
-                  Discover other images from our gallery below.
-                </p>
-              </div>
-            </div>
-          </section>
+                {/* Image information */}
+                <div className="flex min-h-105 flex-col p-5 sm:p-8 lg:min-h-0 lg:p-10">
+
+                  {/* Top actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                      <button
+                        type="button"
+                        onClick={handleShare}
+                        title="Share image"
+                        aria-label="Share image"
+                        className="rounded-full p-2 transition hover:bg-neutral-100"
+                      >
+                        <Share2 size={23} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(selectedPin)}
+                        title="Download image"
+                        aria-label="Download image"
+                        className="rounded-full p-2 transition hover:bg-neutral-100"
+                      >
+                        <Download size={22} />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSave(selectedPin)}
+                      className="rounded-full bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+
+                  {/* Image title */}
+                  <div className="mt-8">
+                    <h1 className="wrap-break-word text-2xl font-semibold text-neutral-900 sm:text-3xl">
+                      {selectedPin.title}
+                    </h1>
+                  </div>
+
+                  {/* Image information */}
+                  <div className="mt-7 flex items-center gap-3">
+
+                    {/* Interactive Heart Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLiked(!isLiked)}
+                      aria-label="Like image"
+                      className={`group flex h-11 w-11 items-center justify-center rounded-full transition-all duration-300 ease-in-out cursor-pointer ${
+                        isLiked
+                          ? "bg-rose-100 hover:bg-rose-200 scale-105"
+                          : "bg-neutral-100 hover:bg-neutral-200 active:scale-95"
+                      }`}
+                    >
+                      <Heart
+                        size={21}
+                        className={`transition-all duration-300 ease-in-out ${
+                          isLiked
+                            ? "fill-rose-500 text-rose-500 scale-110"
+                            : "text-neutral-700 group-hover:text-rose-500 group-hover:scale-110"
+                        }`}
+                      />
+                    </button>
+
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        Image Gallery
+                      </p>
+
+                      <p className="text-xs text-neutral-500">
+                        Discover more images
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1" />
+
+                  {/* Bottom actions */}
+                  <div className="mt-8 border-t border-neutral-200 pt-5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-neutral-900">
+                        Explore more images
+                      </p>
+
+                      <div
+                        className="rounded-full p-2 transition hover:bg-neutral-100"
+                        title="More options"
+                      >
+                        <MoreHorizontal size={23} />
+                      </div>
+                    </div>
+
+                    <p className="text-sm leading-6 text-neutral-500">
+                      Discover other images from our gallery below.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
 
           {/* Related images section */}
           <section className="mt-12 w-full">
 
             {isLoadingRelated ? (
-              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
-                {Array.from({ length: 12 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="mb-5 break-inside-avoid"
-                  >
-                    <div className="min-h-37.5 w-full animate-pulse rounded-2xl bg-neutral-200" />
-                  </div>
-                ))}
+              <div className="flex min-h-[60vh] items-center justify-center gap-3">
+                <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-neutral-200 border-t-neutral-800" />
+
+                <p className="text-sm text-neutral-500">
+                  Loading images...
+                </p>
               </div>
             ) : pins.length > 0 ? (
               <div
@@ -859,24 +867,26 @@ function ImageDetail() {
                             handleImageClick(pin);
                           }
                         }}
-                        className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-100 transition-opacity duration-300"
+                        className="pin-image relative z-10 block h-auto w-full cursor-pointer select-none opacity-0 transition-opacity duration-300"
                         onLoad={(event) => {
-                          event.currentTarget.classList.remove("opacity-0");
+                          const img = event.currentTarget;
+
+                          img.classList.remove("opacity-0");
+                          img.classList.add("opacity-100");
 
                           const skeleton =
-                            event.currentTarget.parentElement.querySelector(
-                              ".pin-skeleton"
-                            );
+                            img.parentElement.querySelector(".pin-skeleton");
 
                           skeleton?.classList.add("hidden");
                         }}
                         onError={(event) => {
-                          event.currentTarget.classList.remove("opacity-0");
+                          const img = event.currentTarget;
+
+                          img.classList.remove("opacity-0");
+                          img.classList.add("opacity-100");
 
                           const skeleton =
-                            event.currentTarget.parentElement.querySelector(
-                              ".pin-skeleton"
-                            );
+                            img.parentElement.querySelector(".pin-skeleton");
 
                           skeleton?.classList.add("hidden");
                         }}

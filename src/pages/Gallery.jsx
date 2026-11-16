@@ -28,6 +28,7 @@ const shuffleImages = (images) => {
 function Gallery() {
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const PAGE_SIZE = 20;
 
@@ -49,7 +50,6 @@ function Gallery() {
   const loadingMoreRef = useRef(false);
   const requestIdRef = useRef(0);
 
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const searchQuery = searchParams.get("search") || "";
 
@@ -127,18 +127,6 @@ function Gallery() {
       clearTimeout(timer);
     };
   }, [searchQuery]);
-
-  const handleSearch = (value) => {
-    const params = new URLSearchParams(searchParams);
-
-    if (value.trim()) {
-      params.set("search", value.trim());
-    } else {
-      params.delete("search");
-    }
-
-    setSearchParams(params, { replace: true });
-  };
 
   // Fetch the next page of images
   const loadMoreImages = useCallback(async () => {
@@ -310,7 +298,7 @@ function Gallery() {
       <Sidebar />
 
       <div className="ml-0 min-h-screen md:ml-21">
-        <Header onSearch={handleSearch} />
+        <Header />
 
         <main className="px-4 sm:px-6">
           <h2 className="mb-7 mt-6 w-fit border-b-2 border-black pb-2 font-medium meet">

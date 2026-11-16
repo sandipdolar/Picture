@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   Camera,
@@ -8,13 +9,34 @@ import {
   X,
 } from "lucide-react";
 
-export default function Header({ onSearch }) {
-  const [search, setSearch] = useState("");
+export default function Header() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchQuery = searchParams.get("search") || "";
+
+  const [search, setSearch] = useState(searchQuery);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Sync input whenever URL search parameter changes
+  useEffect(() => {
+    setSearch(searchQuery);
+  }, [searchQuery]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    onSearch?.(search.trim());
+    updateSearch(search);
+  };
+
+  const updateSearch = (value) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (value.trim()) {
+      params.set("search", value.trim());
+    } else {
+      params.delete("search");
+    }
+
+    setSearchParams(params, { replace: true });
   };
 
   const closeProfile = () => {
@@ -24,6 +46,7 @@ export default function Header({ onSearch }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-100 bg-white/95 backdrop-blur-md">
       <div className="flex h-16 w-full items-center gap-2 px-3 sm:gap-4 sm:px-5 lg:h-[76px] lg:px-7">
+
         <form
           onSubmit={handleSearch}
           role="search"
@@ -39,8 +62,9 @@ export default function Header({ onSearch }) {
             value={search}
             onChange={(e) => {
               const value = e.target.value;
+
               setSearch(value);
-              onSearch?.(value);
+              updateSearch(value);
             }}
             placeholder="Search images, ideas..."
             aria-label="Search images and ideas"
@@ -50,7 +74,10 @@ export default function Header({ onSearch }) {
           {search && (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() => {
+                setSearch("");
+                updateSearch("");
+              }}
               aria-label="Clear search"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black"
             >
@@ -122,9 +149,7 @@ export default function Header({ onSearch }) {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => {
-                      closeProfile();
-                    }}
+                    onClick={closeProfile}
                     className="mt-1 w-full rounded-xl px-3 py-2.5 text-left text-sm text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-black"
                   >
                     {item}
