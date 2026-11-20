@@ -2,6 +2,7 @@ const API_URL = `${(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")}/api
 
 // Fetch all public gallery images
 // Fetch paginated public gallery images
+
 export const getImages = async ({
   page = 1,
   limit = 20,
@@ -17,14 +18,25 @@ export const getImages = async ({
   }
 
   const response = await fetch(`${API_URL}?${params.toString()}`);
+
   const data = await response.json();
 
   if (!response.ok || !data.success) {
     throw new Error(data.message || "Failed to fetch images.");
   }
 
-  return data;
+  if (!Array.isArray(data.images)) {
+    console.error("Invalid images API response:", data);
+
+    throw new Error("Images API did not return an array.");
+  }
+
+  return {
+    images: data.images,
+    pagination: data.pagination,
+  };
 };
+
 
 // Fetch a single image by ID
 export const getImageById = async (id) => {

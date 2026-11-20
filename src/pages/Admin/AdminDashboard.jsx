@@ -58,17 +58,18 @@ function AdminDashboard() {
   useEffect(() => {
     let active = true;
 
+    
     const loadDashboard = async () => {
       try {
-        const [session, imageList] = await Promise.all([
+        const [session, imageData] = await Promise.all([
           getAdminSession(),
-          getImages(),
+          getImages({ page: 1, limit: 1000 }),
         ]);
 
         if (!active) return;
 
         setAdmin(session);
-        setImages(imageList);
+        setImages(imageData.images);
       } catch (err) {
         if (!active) return;
 
@@ -86,6 +87,7 @@ function AdminDashboard() {
         if (active) setIsLoading(false);
       }
     };
+
 
     loadDashboard();
 
@@ -853,7 +855,7 @@ function AdminDashboard() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="*/*"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
                       onChange={handleFileChange}
                       className="hidden"
                     />
