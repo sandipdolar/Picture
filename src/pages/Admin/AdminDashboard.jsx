@@ -57,19 +57,41 @@ function AdminDashboard() {
 
   useEffect(() => {
     let active = true;
-
     
     const loadDashboard = async () => {
       try {
-        const [session, imageData] = await Promise.all([
+        const [session, firstPage] = await Promise.all([
           getAdminSession(),
-          getImages({ page: 1, limit: 1000 }),
+          getImages({ page: 1, limit: 50 }),
         ]);
 
         if (!active) return;
 
         setAdmin(session);
-        setImages(imageData.images);
+
+        let allImages = [...firstPage.images];
+        let currentPage = 1;
+        let hasNextPage = firstPage.pagination?.hasNextPage ?? false;
+
+        while (hasNextPage) {
+          currentPage++;
+
+          const nextPage = await getImages({
+            page: currentPage,
+            limit: 50,
+          });
+
+          allImages = [...allImages, ...nextPage.images];
+
+          hasNextPage = nextPage.pagination?.hasNextPage ?? false;
+        }
+
+        setImages(allImages);
+
+        if (!active) return;
+
+        setImages(allImages);
+
       } catch (err) {
         if (!active) return;
 
@@ -87,6 +109,7 @@ function AdminDashboard() {
         if (active) setIsLoading(false);
       }
     };
+
 
 
     loadDashboard();
